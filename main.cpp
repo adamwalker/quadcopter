@@ -158,34 +158,6 @@ void orientation(){
     }
 }
 
-static WORKING_AREA(wa_flash_thread, 128);
-static msg_t flash_thread(void *arg){
-	pinMode(13, OUTPUT);
-	while (1) {
-		digitalWriteFast(13, HIGH);
-        chThdSleepMilliseconds(100);
-		digitalWriteFast(13, LOW);
-        chThdSleepMilliseconds(100);
-	}
-}
-
-static WORKING_AREA(wa_orientation_thread, 8192);
-static msg_t orientation_thread(void *arg){
-    Serial.printf("Starting orientation task\r\n");
-    orientation();
-}
-
-extern "C" void mainFunc(){
-    Serial.printf("mainFunc\r\n");
-
-    chThdCreateStatic(wa_flash_thread, sizeof(wa_flash_thread), NORMALPRIO, flash_thread, NULL);
-    chThdCreateStatic(wa_orientation_thread, sizeof(wa_orientation_thread), NORMALPRIO, orientation_thread, NULL);
-}
-
-extern "C" void loop(){
-    chThdSleepMilliseconds(100);
-}
-
 //Assumes the output buffer is large enough
 size_t xbeeEscape(size_t len_in, uint8_t *in, uint8_t *out){
     size_t i;
@@ -236,7 +208,9 @@ size_t xbeeTransmitPacket(uint16_t address, uint8_t options, uint8_t frame_id, s
 }
 
 uint8_t getByte(){
-    while(Serial1.available() <= 0){};
+    while(Serial1.available() <= 0){
+        chEvtWaitAny((eventmask_t) 1);
+    };
     return Serial1.read();
 }
 
@@ -293,11 +267,7 @@ got_start:
     }
 }
 
-extern "C" int main(void) {
-    Serial.begin(38400);
-    delay(3000);
-    Serial.printf("Hello World\r\n");
-
+void communication(){
     Serial1.begin(38400, SERIAL_8N1);
     delay(3000);
     while(true){
@@ -306,21 +276,57 @@ extern "C" int main(void) {
         pkt.data = buffer;
         recvPacket(&pkt);
     
-        Serial.println(pkt.sourceAddr, HEX);
-        Serial.println(pkt.rssi, HEX);
-        Serial.println(pkt.options, HEX);
-        
-        int i;
-        for(i=0; i<pkt.len; i++){
-            Serial.printf("%c", pkt.data[i]);
-        }
-
         uint8_t tmp[256];
         size_t len = xbeeTransmitPacket(0xFFFF, 0x01, 0, pkt.len, pkt.data, tmp);
+        int i;
         for(i=0; i<len; i++){
             Serial1.write(tmp[i]);
         }
     }
+}
+
+static WORKING_AREA(wa_flash_thread, 128);
+static msg_t flash_thread(void *arg){
+	pinMode(13, OUTPUT);
+	while (1) {
+		digitalWriteFast(13, HIGH);
+        chThdSleepMilliseconds(100);
+		digitalWriteFast(13, LOW);
+        chThdSleepMilliseconds(100);
+	}
+}
+
+static WORKING_AREA(wa_orientation_thread, 8192);
+static msg_t orientation_thread(void *arg){
+    Serial.printf("Starting orientation task\r\n");
+    orientation();
+}
+
+Thread *tp = NULL;
+
+static WORKING_AREA(wa_communication_thread, 2048);
+static msg_t communication_thread(void *arg){
+    tp = chThdSelf();
+    communication();
+}
+
+extern "C" void mainFunc(){
+    Serial.printf("mainFunc\r\n");
+
+    chThdCreateStatic(wa_flash_thread, sizeof(wa_flash_thread), NORMALPRIO+2, flash_thread, NULL);
+    chThdCreateStatic(wa_orientation_thread, sizeof(wa_orientation_thread), NORMALPRIO, orientation_thread, NULL);
+    chThdCreateStatic(wa_communication_thread, sizeof(wa_communication_thread), NORMALPRIO+1, communication_thread, NULL);
+}
+
+extern "C" void loop(){
+    chThdSleepMilliseconds(100);
+}
+
+
+extern "C" int main(void) {
+    Serial.begin(38400);
+    delay(3000);
+    Serial.printf("Hello World\r\n");
 
     chBegin(mainFunc);
 }
