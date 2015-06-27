@@ -13,6 +13,7 @@
 
 #include "orientation.h"
 #include "led.h"
+#include "control.h"
 
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(12345);
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(12346);
@@ -155,11 +156,28 @@ void orientation(){
 
             //print_vect(4, kalman_state.state);
             //Serial.printf("\r\n%d\r\n", millis_now);
-            Serial.printf("$%f,%f,%f,%f\r\n", fix16_to_float(kalman_state.state[0].val), fix16_to_float(kalman_state.state[1].val), fix16_to_float(kalman_state.state[2].val), fix16_to_float(kalman_state.state[3].val));
+            //Serial.printf("$%f,%f,%f,%f\r\n", fix16_to_float(kalman_state.state[0].val), fix16_to_float(kalman_state.state[1].val), fix16_to_float(kalman_state.state[2].val), fix16_to_float(kalman_state.state[3].val));
 
             chMtxLock(&kalman_st_mut);
             memcpy(&kalman_state_global, &kalman_state.state, 7*sizeof(fix16Exc));
             chMtxUnlock();
+
+            //Control the motors
+            struct gains<fix16Sat> gains = {16384, 16384, 16384, 16384};
+            fix16Sat out[4];
+            fix16Sat control_req[4] = {1, 0, 0, 0};
+            control(&gains, (fix16Sat *)kalman_state.state, control_req, fix16Sat(16384), out);
+
+            int i;
+            for(i=0; i<4; i++){
+                if(out[i].val < 0) out[i] = 0;
+            }
+            //Serial.printf("$%x,%x,%x,%x\r\n", out[0].val >> 23, out[1].val >> 23, out[2].val >> 23, out[3].val >> 23);
+
+            analogWrite(20, out[0].val >> 23);
+            analogWrite(21, out[1].val >> 23);
+            analogWrite(22, out[2].val >> 23);
+            analogWrite(23, out[3].val >> 23);
         }
     } else {
         Serial.printf("overflow exception %d\n", exc);

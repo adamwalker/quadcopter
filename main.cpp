@@ -53,7 +53,7 @@ extern "C" void mainFunc(){
 
     chMtxInit(&kalman_st_mut);
 
-    chThdCreateStatic(wa_led_thread,           sizeof(wa_led_thread),           NORMALPRIO+3, led_thread,           NULL);
+    //chThdCreateStatic(wa_led_thread,           sizeof(wa_led_thread),           NORMALPRIO+3, led_thread,           NULL);
     chThdCreateStatic(wa_flash_thread,         sizeof(wa_flash_thread),         NORMALPRIO+3, flash_thread,         NULL);
     chThdCreateStatic(wa_communication_thread, sizeof(wa_communication_thread), NORMALPRIO+2, communication_thread, NULL);
     chThdCreateStatic(wa_receive_thread,       sizeof(wa_receive_thread),       NORMALPRIO+1, receive_thread,       NULL);
