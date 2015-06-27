@@ -2,5 +2,6 @@
 #define COMMS_H
 
 void communication();
+void receive();
 
 #endif

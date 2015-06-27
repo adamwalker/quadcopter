@@ -12,6 +12,7 @@
 #include <imu.hpp>
 
 #include "orientation.h"
+#include "led.h"
 
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(12345);
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(12346);
@@ -127,9 +128,7 @@ void orientation(){
         struct calibration<fix16Exc> calibration;
         calibrate(&calibration);
 
-        Serial.printf("Mag:   %f %f %f\r\n", calibration.earth_mag[0], calibration.earth_mag[1], calibration.earth_mag[2]);
-        Serial.printf("Accel: %f %f %f\r\n", calibration.earth_grav[0], calibration.earth_grav[1], calibration.earth_grav[2]); 
-        Serial.printf("Gyro:  %f %f %f\r\n", calibration.stat_gyro[0], calibration.stat_gyro[1], calibration.stat_gyro[2]); 
+        chEvtSignal(led_tp, (eventmask_t)1);
 
         struct params<fix16Exc> parameters = {1, 10, 0.3, 0.1};
         unsigned int last_millis = millis() - 100;
