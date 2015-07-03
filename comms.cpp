@@ -77,10 +77,6 @@ void timer_callback(void *p){
 }
 
 void communication(){
-    //TODO: below should be elsewhere
-    Serial1.begin(38400, SERIAL_8N1);
-    delay(3000);
-
     comms_tp = chThdSelf();
     chSysLock();
     chVTSetI(&vt, MS2ST(100), timer_callback, NULL);

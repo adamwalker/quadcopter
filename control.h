@@ -45,21 +45,15 @@ struct gains {
 template <class T>
 void control(struct gains<T> *gains, T *state, struct control_inputs<fix16Sat> *c_in, T *out){
     T error[3];
-    //T control_inv[4];
+    T control_inv[4];
 
-    //control_inv[0] = control[0];
-    //int i;
-    //for(i=1; i<4; i++){
-    //    control_inv[i] = -control[i];
-    //}
-
-    //mul_q_no_1st_out(control_inv, state, error);
-
-
+    control_inv[0] = c_in->orientation[0];
     int i;
-    for(i=0; i<3; i++) error[i] = state[i+1];
+    for(i=1; i<4; i++){
+        control_inv[i] = -c_in->orientation[i];
+    }
 
-    //for(i=0; i<4; i++) out[i] = throttle;
+    mul_q_no_1st_out(control_inv, state, error);
     
     //X moment
     out[0] -= gains->horiz_plane_p * error[0];
@@ -78,6 +72,12 @@ void control(struct gains<T> *gains, T *state, struct control_inputs<fix16Sat> *
     out[1] += gains->yaw_p * error[2];
     out[2] += gains->yaw_p * error[2];
     out[3] -= gains->yaw_p * error[2];
+
+    //Throttle
+    out[0] += c_in->throttle;
+    out[1] += c_in->throttle;
+    out[2] += c_in->throttle;
+    out[3] += c_in->throttle;
     
     //Serial.printf("$%f,%f,%f,%f\r\n", fix16_to_float(out[0].val), fix16_to_float(out[1].val), fix16_to_float(out[2].val), fix16_to_float(out[3].val));
 }

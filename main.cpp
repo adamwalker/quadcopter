@@ -10,8 +10,6 @@
 
 static WORKING_AREA(wa_orientation_thread, 8192);
 static msg_t orientation_thread(void *arg){
-    Serial.begin(38400);
-    delay(3000);
     orientation();
 }
 
@@ -49,6 +47,9 @@ static msg_t led_thread(void *arg){
 }
 
 extern "C" void mainFunc(){
+    Serial.begin(38400);
+    Serial1.begin(38400, SERIAL_8N1);
+    delay(3000);
     Serial.printf("mainFunc\r\n");
 
     chMtxInit(&kalman_st_mut);
