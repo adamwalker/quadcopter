@@ -91,7 +91,6 @@ void calibrate(struct calibration<T> *calib){
         while(!gyro.getEvent(&event)){
             Serial.print("gyro.getEvent failed\r\n");
         }
-        normalize(3, event.gyro.v, event.gyro.v);
         for(j=0; j<3; j++)
             calib->stat_gyro[j] += event.gyro.v[j];
 
@@ -141,12 +140,10 @@ void orientation(){
             struct measurements<fix16Exc> measurements;
             get_measurements(&measurements);
 
-            /*
             int i;
             for(i=0; i<3; i++){
                 measurements.body_gyro[i] = measurements.body_gyro[i] - calibration.stat_gyro[i];
             }
-            */
 
             int millis_now = millis();
             int diff       = millis_now - last_millis;
@@ -168,7 +165,6 @@ void orientation(){
             fix16Sat control_req[4] = {1, 0, 0, 0};
             control(&gains, (fix16Sat *)kalman_state.state, control_req, fix16Sat(16384), out);
 
-            int i;
             for(i=0; i<4; i++){
                 if(out[i].val < 0) out[i] = 0;
             }
