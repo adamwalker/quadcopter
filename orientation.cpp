@@ -130,7 +130,7 @@ void orientation(){
 
         chEvtSignal(led_tp, (eventmask_t)1);
 
-        struct params<fix16Exc> parameters = {1, 10, 0.3, 0.1};
+        struct params<fix16Exc> parameters = {2, 40, 0.3, 0.05};
         unsigned int last_millis = millis() - 100;
 
         struct kalman_state<fix16Exc> kalman_state;
