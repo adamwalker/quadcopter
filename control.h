@@ -2,6 +2,12 @@
 #define CONTROL_H
 
 template <class T>
+struct control_inputs {
+    T throttle;
+    T orientation[4];
+};
+
+template <class T>
 struct gains {
     T horiz_plane_p;
     T yaw_p;
@@ -37,7 +43,7 @@ struct gains {
  */
 
 template <class T>
-void control(struct gains<T> *gains, T *state, T *control, T throttle, T *out){
+void control(struct gains<T> *gains, T *state, struct control_inputs<fix16Sat> *c_in, T *out){
     T error[3];
     //T control_inv[4];
 
@@ -73,7 +79,7 @@ void control(struct gains<T> *gains, T *state, T *control, T throttle, T *out){
     out[2] += gains->yaw_p * error[2];
     out[3] -= gains->yaw_p * error[2];
     
-    Serial.printf("$%f,%f,%f,%f\r\n", fix16_to_float(out[0].val), fix16_to_float(out[1].val), fix16_to_float(out[2].val), fix16_to_float(out[3].val));
+    //Serial.printf("$%f,%f,%f,%f\r\n", fix16_to_float(out[0].val), fix16_to_float(out[1].val), fix16_to_float(out[2].val), fix16_to_float(out[3].val));
 }
 
 

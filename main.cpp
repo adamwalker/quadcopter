@@ -52,6 +52,7 @@ extern "C" void mainFunc(){
     Serial.printf("mainFunc\r\n");
 
     chMtxInit(&kalman_st_mut);
+    chMtxInit(&control_mut);
 
     //chThdCreateStatic(wa_led_thread,           sizeof(wa_led_thread),           NORMALPRIO+3, led_thread,           NULL);
     chThdCreateStatic(wa_flash_thread,         sizeof(wa_flash_thread),         NORMALPRIO+3, flash_thread,         NULL);

@@ -6,13 +6,16 @@
 #include "WProgram.h"
 #include "orientation.h"
 #include "xbee.h"
+#include "comms.h"
 
 #define ACK       0
 #define TELEMETRY 1
 #define EXCEPTION 2
 
 #define PING      0
-#define ARM       1
+#define CONTROL   1
+#define GAINS     2
+#define RESET     3
 
 //void decodePacket(size_t len, uint8_t *pkt){
 //    if(pkt[0] == PING){
@@ -39,8 +42,30 @@ size_t makeTelemetryPkt(uint8_t *pkt){
     return 1 + 7*sizeof(fix16Exc);
 }
 
-VirtualTimer vt;
 Thread *comms_tp = NULL;
+
+void parsePacket(size_t len, uint8_t *data){
+    switch(data[0]){
+        case PING:
+            if(comms_tp) chEvtSignal(comms_tp, (eventmask_t) ACK_EVT);
+            break;
+        case CONTROL:
+            chMtxLock(&control_mut);
+            memcpy(&current_control, data+1, sizeof(struct control_inputs<fix16Exc>));
+            chMtxUnlock();
+            break;
+        case GAINS:
+            chMtxLock(&control_mut);
+            memcpy(&current_gains, data+1, sizeof(struct gains<fix16Exc>));
+            chMtxUnlock();
+            break;
+        case RESET:
+            Serial.print("RESET");
+            break;
+    }
+}
+
+VirtualTimer vt;
 
 void timer_callback(void *p){
     chSysLockFromIsr();
@@ -52,6 +77,7 @@ void timer_callback(void *p){
 }
 
 void communication(){
+    //TODO: below should be elsewhere
     Serial1.begin(38400, SERIAL_8N1);
     delay(3000);
 
@@ -64,7 +90,7 @@ void communication(){
         
         eventmask_t event = chEvtWaitAny((eventmask_t) 3);
 
-        if(event & 0x1){
+        if(event & TIMER_EVT){
             uint8_t telem_pkt[256];
             size_t len = makeTelemetryPkt(telem_pkt);
             uint8_t tmp[256];
@@ -75,12 +101,23 @@ void communication(){
             }
         }
 
-        if(event & 0x2){
+        if(event & ACK_EVT){
             uint8_t ack_pkt[256];
             size_t len = makeAckPkt(ack_pkt);
             uint8_t tmp[256];
             int i;
             len = xbeeTransmitPacket(0x1234, 0x00, 0, len, ack_pkt, tmp);
+            for(i=0; i<len; i++){
+                Serial1.write(tmp[i]);
+            }
+        }
+
+        if(event & EXCEPTION_EVT){
+            uint8_t exc_pkt[256];
+            size_t len = makeExcPkt(exc_pkt);
+            uint8_t tmp[256];
+            int i;
+            len = xbeeTransmitPacket(0x1234, 0x00, 0, len, exc_pkt, tmp);
             for(i=0; i<len; i++){
                 Serial1.write(tmp[i]);
             }
@@ -94,7 +131,6 @@ void receive(){
         uint8_t buffer[256];
         pkt.data = buffer;
         xbeeRecvPacket(&pkt);
-
-        if(comms_tp) chEvtSignal(comms_tp, (eventmask_t) 2);
+        parsePacket(pkt.len, buffer);
     }
 }
