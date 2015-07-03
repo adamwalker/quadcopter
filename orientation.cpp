@@ -132,6 +132,7 @@ void orientation(){
     current_control.orientation[2] = 0;
     current_control.orientation[3] = 0;
 
+    current_gains.throttle_gain = 16386;
     current_gains.horiz_plane_p = 16386;
     current_gains.yaw_p         = 16386;
     current_gains.horiz_plane_d = 16386;

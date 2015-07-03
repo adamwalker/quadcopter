@@ -17,13 +17,6 @@
 #define GAINS     2
 #define RESET     3
 
-//void decodePacket(size_t len, uint8_t *pkt){
-//    if(pkt[0] == PING){
-//    } else if (pkt[0] == ARM) {
-//    } else {
-//    }
-//}
-
 size_t makeAckPkt(uint8_t *pkt){
     pkt[0] = ACK;
     return 1;
