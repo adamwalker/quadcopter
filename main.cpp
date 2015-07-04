@@ -32,6 +32,11 @@ static msg_t flash_thread(void *arg){
     led();
 }
 
+static WORKING_AREA(wa_meas_thread, 4096);
+static msg_t meas_thread(void *arg){
+    get_sensors();
+}
+
 static WORKING_AREA(wa_led_thread, 128);
 static msg_t led_thread(void *arg){
     int val = 0;
@@ -56,7 +61,8 @@ extern "C" void mainFunc(){
     chMtxInit(&control_mut);
 
     //chThdCreateStatic(wa_led_thread,           sizeof(wa_led_thread),           NORMALPRIO+3, led_thread,           NULL);
-    chThdCreateStatic(wa_flash_thread,         sizeof(wa_flash_thread),         NORMALPRIO+3, flash_thread,         NULL);
+    chThdCreateStatic(wa_flash_thread,         sizeof(wa_flash_thread),         NORMALPRIO+4, flash_thread,         NULL);
+    chThdCreateStatic(wa_meas_thread,         sizeof(wa_meas_thread),         NORMALPRIO+3, meas_thread,         NULL);
     chThdCreateStatic(wa_communication_thread, sizeof(wa_communication_thread), NORMALPRIO+2, communication_thread, NULL);
     chThdCreateStatic(wa_receive_thread,       sizeof(wa_receive_thread),       NORMALPRIO+1, receive_thread,       NULL);
     chThdCreateStatic(wa_orientation_thread,   sizeof(wa_orientation_thread),   NORMALPRIO,   orientation_thread,   NULL);

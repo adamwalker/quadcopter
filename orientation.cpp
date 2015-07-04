@@ -29,40 +29,84 @@ struct gains<fix16Sat>          current_gains;
 
 Thread *i2c_tp = NULL;
 
+Thread *orient_tp = NULL;
+struct measurements<float> meas;
+
+void get_sensors(){
+    i2c_tp = chThdSelf();
+    struct measurements<float> meas_local;
+
+    Serial.print("accel begin\r\n");
+    if(!accel.begin()){
+        Serial.print("Accelerometer not detected\n");
+    }
+    Serial.print("sensors\r\n");
+
+    if(!mag.begin()){
+        Serial.print("Magnetometer not detected\n");
+    }
+
+    if(!gyro.begin()){
+        Serial.print("Gyro not detected\n");
+    }
+
+    while(true){
+        sensors_event_t event;
+        int i;
+
+        while(!mag.getEvent(&event));
+        for(i=0; i<3; i++){
+            meas_local.body_mag[i] = event.magnetic.v[i];
+        }
+
+        while(!accel.getEvent(&event));
+        for(i=0; i<3; i++){
+            meas_local.body_grav[i] = event.acceleration.v[i];
+        }
+
+        while(!gyro.getEvent(&event));
+        for(i=0; i<3; i++){
+            meas_local.body_gyro[i] = event.gyro.v[i];
+        }
+
+        if(orient_tp != NULL) {
+            memcpy(&meas, &meas_local, sizeof(struct measurements<float>));
+            //Serial.printf("%f %f %f\r\n", meas.body_gyro[0], meas.body_gyro[1],meas.body_gyro[2]);
+            chMsgSend(orient_tp, NULL);
+        } else {
+            chThdSleepMilliseconds(100);
+        }
+    }
+}
+
 template <class T>
-void get_measurements(struct measurements<T> *meas){
+void get_measurements(struct measurements<T> *meass){
     jmp_buf jb;
     jmp_buf *last_jb = overflow_exc;
     overflow_exc = &jb;
     int exc;
 
+    struct measurements<float> meas_local;
+
+    chMsgWait();
+    memcpy(&meas_local, &meas, sizeof (struct measurements<float>));
+    chMsgRelease(i2c_tp, NULL);
+
     if(!(exc = setjmp(jb))){
-        sensors_event_t event;
         int i;
 
-        while(!mag.getEvent(&event)){
-            Serial.print("mag.getEvent failed\r\n");
+        for(i=0; i<3; i++){
+            meass->body_mag[i] = meas_local.body_mag[i];
         }
         for(i=0; i<3; i++){
-            meas->body_mag[i] = event.magnetic.v[i];
-        }
-
-        while(!accel.getEvent(&event)){
-            Serial.print("accel.getEvent failed\r\n");
+            meass->body_grav[i] = meas_local.body_grav[i];
         }
         for(i=0; i<3; i++){
-            meas->body_grav[i] = event.acceleration.v[i];
+            meass->body_gyro[i] = meas_local.body_gyro[i];
         }
 
-        while(!gyro.getEvent(&event)){
-            Serial.print("gyro.getEvent failed\r\n");
-        }
-        for(i=0; i<3; i++){
-            meas->body_gyro[i] = event.gyro.v[i];
-        }
-
-        normalize(3, meas->body_mag,  meas->body_mag);
-        normalize(3, meas->body_grav, meas->body_grav);
+        normalize(3, meass->body_mag,  meass->body_mag);
+        normalize(3, meass->body_grav, meass->body_grav);
     } else {
         Serial.printf("getMeasurements exception\r\n");
         overflow_exc = last_jb;
@@ -74,8 +118,8 @@ void get_measurements(struct measurements<T> *meas){
 
 template <class T>
 void calibrate(struct calibration<T> *calib){
-    sensors_event_t event;
     int i, j;
+    struct measurements<T> meas;
 
     for(j=0; j<3; j++){
         calib->earth_mag[j] = 0;
@@ -84,25 +128,16 @@ void calibrate(struct calibration<T> *calib){
     }
 
     for(i=0; i<100; i++){
-        while(!mag.getEvent(&event)){
-            Serial.print("mag.getEvent failed\r\n");
-        }
-        normalize(3, event.magnetic.v, event.magnetic.v);
-        for(j=0; j<3; j++)
-            calib->earth_mag[j] += event.magnetic.v[j];
+        get_measurements(&meas);
 
-        while(!accel.getEvent(&event)){
-            Serial.print("accel.getEvent failed\r\n");
-        }
-        normalize(3, event.acceleration.v, event.acceleration.v);
         for(j=0; j<3; j++)
-            calib->earth_grav[j] += event.acceleration.v[j];
+            calib->earth_mag[j] += meas.body_mag[j];
 
-        while(!gyro.getEvent(&event)){
-            Serial.print("gyro.getEvent failed\r\n");
-        }
         for(j=0; j<3; j++)
-            calib->stat_gyro[j] += event.gyro.v[j];
+            calib->earth_grav[j] += meas.body_grav[j];
+
+        for(j=0; j<3; j++)
+            calib->stat_gyro[j] += meas.body_gyro[j];
 
         chThdSleepMilliseconds(30);
     }
@@ -113,22 +148,10 @@ void calibrate(struct calibration<T> *calib){
 }
 
 void orientation(){
-    i2c_tp = chThdSelf();
+    orient_tp = chThdSelf();
 
     //Wire.begin();
     sensors_event_t event;
-
-    if(!accel.begin()){
-        Serial.print("Accelerometer not detected\n");
-    }
-
-    if(!mag.begin()){
-        Serial.print("Magnetometer not detected\n");
-    }
-
-    if(!gyro.begin()){
-        Serial.print("Gyro not detected\n");
-    }
 
     current_control.throttle = 0;
     current_control.orientation[0] = 1;
