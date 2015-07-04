@@ -27,6 +27,8 @@ Mutex control_mut;
 struct control_inputs<fix16Exc> current_control;
 struct gains<fix16Sat>          current_gains;
 
+Thread *i2c_tp = NULL;
+
 template <class T>
 void get_measurements(struct measurements<T> *meas){
     jmp_buf jb;
@@ -111,6 +113,8 @@ void calibrate(struct calibration<T> *calib){
 }
 
 void orientation(){
+    i2c_tp = chThdSelf();
+
     //Wire.begin();
     sensors_event_t event;
 
