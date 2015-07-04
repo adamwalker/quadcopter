@@ -158,7 +158,7 @@ void orientation(){
     while(true){
         if(!(exc = setjmp(jb))){
             struct params<fix16Exc> parameters = {2, 40, 0.3, 0.05};
-            unsigned int last_millis = millis() - 100;
+            unsigned int last_millis = micros() - 100000;
 
             struct kalman_state<fix16Exc> kalman_state;
             init_kalman_state(fix16Exc(0), fix16Exc(0), &kalman_state);
@@ -172,11 +172,13 @@ void orientation(){
                     measurements.body_gyro[i] = measurements.body_gyro[i] - calibration.stat_gyro[i];
                 }
 
-                int millis_now = millis();
-                int diff       = millis_now - last_millis;
+                unsigned int millis_now = micros();
+                unsigned int diff       = millis_now - last_millis;
                 last_millis    = millis_now;
 
-                imu(&calibration, &parameters, &measurements, &kalman_state, fix16Exc(diff) / fix16Exc(1000));
+                Serial.printf("rate: %d\r\n", 1000000 / diff);
+
+                imu(&calibration, &parameters, &measurements, &kalman_state, fix16Exc((int)diff / 100) / fix16Exc(10000));
 
                 //print_vect(4, kalman_state.state);
                 //Serial.printf("\r\n%d\r\n", millis_now);
