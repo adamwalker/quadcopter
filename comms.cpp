@@ -37,6 +37,10 @@ size_t makeTelemetryPkt(uint8_t *pkt){
 
 Thread *comms_tp = NULL;
 
+#define CPU_RESTART_ADDR (uint32_t *)0xE000ED0C
+#define CPU_RESTART_VAL 0x5FA0004
+#define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
+
 void parsePacket(size_t len, uint8_t *data){
     switch(data[0]){
         case PING:
@@ -53,7 +57,7 @@ void parsePacket(size_t len, uint8_t *data){
             chMtxUnlock();
             break;
         case RESET:
-            Serial.print("RESET");
+            CPU_RESTART;
             break;
     }
 }
