@@ -16,6 +16,8 @@
 #define CONTROL   1
 #define GAINS     2
 #define RESET     3
+#define ARM       4
+#define DISARM    5
 
 size_t makeAckPkt(uint8_t *pkt){
     pkt[0] = ACK;
@@ -42,6 +44,7 @@ Thread *comms_tp = NULL;
 #define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
 
 extern unsigned int last_command;
+extern bool armed;
 
 void parsePacket(size_t len, uint8_t *data){
     switch(data[0]){
@@ -61,6 +64,12 @@ void parsePacket(size_t len, uint8_t *data){
             break;
         case RESET:
             CPU_RESTART;
+            break;
+        case ARM:
+            armed = true;
+            break;
+        case DISARM:
+            armed = false;
             break;
     }
 }

@@ -23,6 +23,8 @@ Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(12347);
 Mutex kalman_st_mut;
 fix16Exc kalman_state_global[7];
 
+bool armed = false;
+
 Mutex control_mut;
 struct control_inputs<fix16Exc> current_control;
 struct gains<fix16Sat>          current_gains;
@@ -240,7 +242,7 @@ void orientation(){
                 }
                 //Serial.printf("$%x,%x,%x,%x\r\n", out[0].val >> 23, out[1].val >> 23, out[2].val >> 23, out[3].val >> 23);
 
-                if(millis() > last_command + 1000){
+                if((millis() > last_command + 1000) || !armed){
                     for(i=0; i<4; i++) out[i] = 0;
                 } 
                 set_motors(out);
