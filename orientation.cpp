@@ -26,6 +26,7 @@ fix16Exc kalman_state_global[7];
 Mutex control_mut;
 struct control_inputs<fix16Exc> current_control;
 struct gains<fix16Sat>          current_gains;
+unsigned int last_command = 0;
 
 Thread *i2c_tp = NULL;
 
@@ -147,6 +148,13 @@ void calibrate(struct calibration<T> *calib){
     divv((T)100, 3, calib->stat_gyro, calib->stat_gyro);
 }
 
+void set_motors(fix16Sat out[4]){
+    analogWrite(20, out[0].val >> 23);
+    analogWrite(21, out[1].val >> 23);
+    analogWrite(22, out[2].val >> 23);
+    analogWrite(23, out[3].val >> 23);
+}
+
 void orientation(){
     orient_tp = chThdSelf();
 
@@ -232,10 +240,10 @@ void orientation(){
                 }
                 //Serial.printf("$%x,%x,%x,%x\r\n", out[0].val >> 23, out[1].val >> 23, out[2].val >> 23, out[3].val >> 23);
 
-                analogWrite(20, out[0].val >> 23);
-                analogWrite(21, out[1].val >> 23);
-                analogWrite(22, out[2].val >> 23);
-                analogWrite(23, out[3].val >> 23);
+                if(millis() > last_command + 1000){
+                    for(i=0; i<4; i++) out[i] = 0;
+                } 
+                set_motors(out);
             }
         } else {
             Serial.printf("overflow exception %d\n", exc);

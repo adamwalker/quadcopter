@@ -41,6 +41,8 @@ Thread *comms_tp = NULL;
 #define CPU_RESTART_VAL 0x5FA0004
 #define CPU_RESTART (*CPU_RESTART_ADDR = CPU_RESTART_VAL);
 
+extern unsigned int last_command;
+
 void parsePacket(size_t len, uint8_t *data){
     switch(data[0]){
         case PING:
@@ -49,6 +51,7 @@ void parsePacket(size_t len, uint8_t *data){
         case CONTROL:
             chMtxLock(&control_mut);
             memcpy(&current_control, data+1, sizeof(struct control_inputs<fix16Exc>));
+            last_command = millis();
             chMtxUnlock();
             break;
         case GAINS:
