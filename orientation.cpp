@@ -195,6 +195,8 @@ void orientation(){
     while(true){
         if(!(exc = setjmp(jb))){
             struct params<fix16Exc> parameters = {2, 40, 0.3, 0.05};
+            struct gn_weights<fix16Exc> weights = {20, 1};
+
             unsigned int last_millis = micros() - 100000;
 
             struct kalman_state<fix16Exc> kalman_state;
@@ -215,7 +217,7 @@ void orientation(){
 
                 Serial.printf("rate: %d\r\n", 1000000 / diff);
 
-                imu(&calibration, &parameters, &measurements, &kalman_state, fix16Exc((int)diff / 100) / fix16Exc(10000));
+                imu(&calibration, &parameters, &weights, &measurements, &kalman_state, fix16Exc((int)diff / 100) / fix16Exc(10000));
 
                 //print_vect(4, kalman_state.state);
                 //Serial.printf("\r\n%d\r\n", millis_now);
