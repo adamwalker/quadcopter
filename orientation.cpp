@@ -142,7 +142,7 @@ void calibrate(struct calibration<T> *calib){
         for(j=0; j<3; j++)
             calib->stat_gyro[j] += meas.body_gyro[j];
 
-        chThdSleepMilliseconds(30);
+        chThdSleepMilliseconds(6);
     }
 
     normalize(3, calib->earth_mag, calib->earth_mag);
