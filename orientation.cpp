@@ -15,6 +15,7 @@
 #include "led.h"
 #include "control.h"
 #include "comms.h"
+#include <Servo.h>
 
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(12345);
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(12346);
@@ -22,6 +23,11 @@ Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(12347);
 
 Mutex kalman_st_mut;
 fix16Exc kalman_state_global[7];
+
+Servo myservo0;  
+Servo myservo1;  
+Servo myservo2;  
+Servo myservo3;
 
 bool armed = false;
 
@@ -150,15 +156,25 @@ void calibrate(struct calibration<T> *calib){
     divv((T)100, 3, calib->stat_gyro, calib->stat_gyro);
 }
 
+void setup_motors(){
+    myservo0.attach(20);
+    myservo1.attach(21);
+    myservo2.attach(3);
+    myservo3.attach(4);
+}
+
 void set_motors(fix16Sat out[4]){
-    analogWrite(20, out[0].val >> 23);
-    analogWrite(21, out[1].val >> 23);
-    analogWrite(22, out[2].val >> 23);
-    analogWrite(23, out[3].val >> 23);
+    //TODO: scaling
+    myservo0.write(out[0].val>>23);
+    myservo1.write(out[1].val>>23);
+    myservo2.write(out[2].val>>23);
+    myservo3.write(out[3].val>>23);
 }
 
 void orientation(){
     orient_tp = chThdSelf();
+
+    setup_motors();
 
     //Wire.begin();
     sensors_event_t event;

@@ -72,7 +72,6 @@ extern "C" void loop(){
     chThdSleepMilliseconds(10000);
 }
 
-
 extern "C" int main(void) {
     chBegin(mainFunc);
 }
