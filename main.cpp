@@ -68,11 +68,26 @@ extern "C" void mainFunc(){
     chThdCreateStatic(wa_orientation_thread,   sizeof(wa_orientation_thread),   NORMALPRIO,   orientation_thread,   NULL);
 }
 
+static WORKING_AREA(wa_calib_thread, 4096);
+static msg_t calib_thread(void *arg){
+    calibrate();
+}
+
+extern "C" void doCalibrate(){
+    Serial.begin(38400);
+    delay(3000);
+    Serial.printf("Starting calibration\r\n");
+
+    chThdCreateStatic(wa_meas_thread,         sizeof(wa_meas_thread),         NORMALPRIO+3, meas_thread,         NULL);
+    chThdCreateStatic(wa_calib_thread,         sizeof(wa_calib_thread),         NORMALPRIO+3, calib_thread,         NULL);
+}
+
 extern "C" void loop(){
     chThdSleepMilliseconds(10000);
 }
 
 extern "C" int main(void) {
     chBegin(mainFunc);
+    //chBegin(doCalibrate);
 }
 

@@ -113,9 +113,6 @@ void get_measurements(struct measurements<T> *meass){
         for(i=0; i<3; i++){
             meass->body_gyro[i] = meas_local.body_gyro[i];
         }
-
-        normalize(3, meass->body_mag,  meass->body_mag);
-        normalize(3, meass->body_grav, meass->body_grav);
     } else {
         Serial.printf("getMeasurements exception\r\n");
         overflow_exc = last_jb;
@@ -123,6 +120,14 @@ void get_measurements(struct measurements<T> *meass){
     }
 
     overflow_exc = (jmp_buf *)last_jb;
+}
+
+template <class T>
+void get_measurements_calibrated(struct measurements<T> *meass){
+    get_measurements(meass);
+    meass->body_mag[0] -= -12.0;
+    meass->body_mag[1] -= -6.5;
+    meass->body_mag[2] -= 30.0;
 }
 
 template <class T>
@@ -137,7 +142,10 @@ void calibrate(struct calibration<T> *calib){
     }
 
     for(i=0; i<100; i++){
-        get_measurements(&meas);
+        get_measurements_calibrated(&meas);
+
+        normalize(3, meas.body_mag, meas.body_mag);
+        normalize(3, meas.body_grav, meas.body_grav);
 
         for(j=0; j<3; j++)
             calib->earth_mag[j] += meas.body_mag[j];
@@ -220,7 +228,9 @@ void orientation(){
 
             while(true){
                 struct measurements<fix16Exc> measurements;
-                get_measurements(&measurements);
+                get_measurements_calibrated(&measurements);
+                normalize(3, measurements.body_mag,  measurements.body_mag);
+                normalize(3, measurements.body_grav, measurements.body_grav);
 
                 int i;
                 for(i=0; i<3; i++){
@@ -271,3 +281,34 @@ void orientation(){
         }
     }
 }
+
+void calibrate(){
+    Serial.print("Calibrate func\r\n");
+    orient_tp = chThdSelf();
+    struct measurements<float> meas;
+
+    float accel_max[3] = {0, 0, 0};
+    float accel_min[3] = {0, 0, 0};
+    float mag_max[3]   = {0, 0, 0};
+    float mag_min[3]   = {0, 0, 0};
+
+    while(true){
+        get_measurements(&meas);
+
+        int i;
+        for(i=0; i<3; i++){
+            if(accel_max[i] < meas.body_grav[i]) accel_max[i] = meas.body_grav[i];
+            if(accel_min[i] > meas.body_grav[i]) accel_min[i] = meas.body_grav[i];
+            if(mag_max[i]   < meas.body_mag[i])  mag_max[i]   = meas.body_mag[i];
+            if(mag_min[i]   > meas.body_mag[i])  mag_min[i]   = meas.body_mag[i];
+        }
+
+        Serial.printf("Accel: %f %f %f\r\n", accel_max[0], accel_max[1], accel_max[2]);
+        Serial.printf("Accel: %f %f %f\r\n", accel_min[0], accel_min[1], accel_min[2]);
+        Serial.printf("Mag:   %f %f %f\r\n", mag_max[0],   mag_max[1],   mag_max[2]);
+        Serial.printf("Mag:   %f %f %f\r\n", mag_min[0],   mag_min[1],   mag_min[2]);
+
+        delay(100);
+    }
+}
+

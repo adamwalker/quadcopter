@@ -8,6 +8,7 @@ extern fix16Exc kalman_state_global[7];
 
 void get_sensors();
 void orientation();
+void calibrate();
 
 extern struct control_inputs<fix16Exc> current_control;
 extern Mutex control_mut;
